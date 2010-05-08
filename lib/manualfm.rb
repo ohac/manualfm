@@ -4,6 +4,7 @@ require 'nokogiri'
 require 'digest/md5'
 require 'net/http'
 require 'pit'
+require 'manualfm/cddb'
 
 module ManualFm
   CONFIG = Pit.get('lastfm_api')
@@ -90,6 +91,7 @@ if token.nil?
   puts('http://www.last.fm/api/auth/?api_key=%s&token=%s' %
       [ManualFm::APIKEY, token])
   ManualFm::CONFIG['token'] = token
+  Pit.set('lastfm_api', :data => ManualFm::CONFIG)
   puts('ready?')
   gets
 end
@@ -101,11 +103,22 @@ if sk.nil?
   name, sk = ManualFm.getsession(token)
   ManualFm::CONFIG['name'] = name
   ManualFm::CONFIG['sk'] = sk
+  Pit.set('lastfm_api', :data => ManualFm::CONFIG)
 end
 
 re, sid, post, post2 = ManualFm.handshake(name, sk)
-artist = 'Van Halen'
-track = 'Jump'
-len = 4 * 60 + 6
-time = Time.now.to_i - len - 10
-ManualFm.submit(post2, sid, artist, track, time, len)
+
+cd = ManualFm.readcddb('jack.freedb')
+
+artist = cd[:artist]
+title = cd[:title]
+totallen = cd[:totallen]
+time = Time.local(2010, 5, 7, 9, 0, 0) - totallen
+track = cd[:track]
+track.each do |t|
+  ttitle = t[:title]
+  length = t[:length]
+  puts "%s %d %s" % [ ttitle, length, time ]
+  ManualFm.submit(post2, sid, artist, ttitle, time.to_i, length)
+  time += length
+end
