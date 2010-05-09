@@ -7,7 +7,7 @@ module ManualFm
     last_offset = nil
     lens = []
     loop do
-      x, offsets = lines.shift.split("\t")
+      x, offsets = lines.shift.split("\s")
       break if offsets.nil?
       offset = offsets.to_i
       unless last_offset.nil?
