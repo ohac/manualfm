@@ -5,6 +5,7 @@ require 'digest/md5'
 require 'net/http'
 require 'pit'
 require 'manualfm/cddb'
+require 'manualfm/itunes'
 
 module ManualFm
   CONFIG = Pit.get('lastfm_api')
@@ -108,17 +109,30 @@ end
 
 re, sid, post, post2 = ManualFm.handshake(name, sk)
 
-cd = ManualFm.readcddb('jack.freedb')
+if false
+  cd = ManualFm.readcddb('jack.freedb')
 
-artist = cd[:artist]
-title = cd[:title]
-totallen = cd[:totallen]
-time = Time.local(2010, 5, 7, 9, 0, 0) - totallen
-track = cd[:track]
-track.each do |t|
-  ttitle = t[:title]
-  length = t[:length]
-  puts "%s %d %s" % [ ttitle, length, time ]
-  ManualFm.submit(post2, sid, artist, ttitle, time.to_i, length)
-  time += length
+  artist = cd[:artist]
+  title = cd[:title]
+  totallen = cd[:totallen]
+  time = Time.local(2010, 5, 7, 9, 0, 0) - totallen
+  track = cd[:track]
+  track.each do |t|
+    ttitle = t[:title]
+    length = t[:length]
+    puts "%s %d %s" % [ ttitle, length, time ]
+    ManualFm.submit(post2, sid, artist, ttitle, time.to_i, length)
+    time += length
+  end
+else
+  played = ManualFm.readitunes(Time.local(2001, 1, 1, 1))
+  played.values.sort_by{|v|v[:date_played]}.each do |tr|
+    next if tr[:is_song] == 0
+    artist = tr[:artist]
+    ttitle = tr[:title]
+    length = (tr[:total_time_ms] / 1000).round
+    time = tr[:date_played] - length
+    puts "%s %d %s" % [ ttitle, length, time ]
+    ManualFm.submit(post2, sid, artist, ttitle, time.to_i, length)
+  end
 end
